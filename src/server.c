@@ -17,5 +17,5 @@ int32_t main( int32_t argc, char ** argv )
         return 1;
 
     conninfo = get_connection_string( connection_info );
-    printf( "%s\n", conninfo );
+    _log( LOG_LEVEL_INFO, "%s", conninfo );
 }

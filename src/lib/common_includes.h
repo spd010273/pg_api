@@ -7,7 +7,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#define LOG_FILE_NAME "/var/log/pg_api/pg_api.log"
 #define MAX_CONNINFO_LEN 64
+
 typedef struct {
     uint16_t port;
     char     hostname[MAX_CONNINFO_LEN + 1];

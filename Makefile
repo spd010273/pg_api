@@ -17,9 +17,9 @@ SRCS            = $(wildcard src/*.c) $(wildcard src/lib/*.c)
 OBJS            = $(SRCS:.c=.o)
 LDFLAGS         = -lm -lpq
 
-server: $(OBJS)
+pg_api: $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) server
+	rm -f $(OBJS) pg_api
