@@ -1,2 +1,4 @@
 *.o
 pg_api
+*.swo
+*.swp

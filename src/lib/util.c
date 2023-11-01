@@ -170,7 +170,7 @@ conninfo_t * _parse_args( int argc, char ** argv )
 
     opterr = 0;
 
-    while( ( c = getopt( argc, argv, "U:d:h:p:" ) ) != -1 )
+    while( ( c = getopt( argc, argv, "U:d:h:p:D" ) ) != -1 )
     {
         switch( c )
         {
@@ -185,6 +185,9 @@ conninfo_t * _parse_args( int argc, char ** argv )
                 break;
             case 'p':
                 port = optarg;
+                break;
+            case 'D':
+                daemonize = true;
                 break;
             default:
                 _usage( "Invalid argument" );
