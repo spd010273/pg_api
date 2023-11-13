@@ -62,6 +62,7 @@ bool enumerate_relations( PGconn * conn, relation_t ** relations, uint32_t * num
 
         strncpy( rel->schema_name, params[0], MAX_RELNAME_LEN );
         strncpy( rel->table_name, params[1], MAX_RELNAME_LEN );
+        strncpy( rel->route_alias, get_column_value( i, rel_result, "table_alias" ), MAX_RELNAME_LEN );
         col_result = execute_query( conn, ( char * ) get_relation_attributes, params, 2 );
 
         if( col_result == NULL )
@@ -73,6 +74,8 @@ bool enumerate_relations( PGconn * conn, relation_t ** relations, uint32_t * num
 
         num_columns = PQntuples( col_result );
         rel->num_columns = num_columns;
+        rel->can_write   = true;
+        rel->can_read    = true;
         rel->columns     = ( column_t * ) calloc(
             sizeof( column_t ),
             num_columns

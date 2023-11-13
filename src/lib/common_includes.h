@@ -27,6 +27,9 @@ typedef struct {
 typedef struct {
     char       schema_name[MAX_RELNAME_LEN + 1];
     char       table_name[MAX_RELNAME_LEN + 1];
+    char       route_alias[MAX_RELNAME_LEN + 1];
+    bool       can_write;
+    bool       can_read;
     uint16_t   num_columns;
     column_t * columns;
 } relation_t;

@@ -2,15 +2,20 @@
 
 const char * get_relations = "\
     SELECT n.nspname AS schema_name, \
-           c.relname AS table_name \
+           c.relname AS table_name, \
+           COALESCE( ta.table_alias, c.relname ) AS table_alias \
       FROM pg_catalog.pg_class c \
 INNER JOIN pg_catalog.pg_namespace n \
         ON n.oid = c.relnamespace \
        AND n.nspname::VARCHAR NOT IN( \
                'pg_catalog', \
                'pg_toast', \
-               'information_schema' \
+               'information_schema', \
+               '" EXTENSION_NAME "' \
            ) \
+ LEFT JOIN " EXTENSION_NAME ".tb_table_alias ta \
+        ON ta.table_name = c.relname \
+       AND ta.schema_name = n.nspname \
      WHERE c.relkind NOT IN( 'S', 'i', 't', 'c', 'I' )";
 
 const char * get_relation_attributes = "\
