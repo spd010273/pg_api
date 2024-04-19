@@ -21,6 +21,8 @@ INNER JOIN pg_catalog.pg_namespace n \
 const char * get_relation_attributes = "\
     SELECT a.attname::VARCHAR AS column_name, \
            NULLIF( a.attnotnull, FALSE ) AS required, \
+           co_p.oid AS primary, \
+           co_u.oid AS unique, \
            CASE WHEN t.typname IN( 'bpchar', 'varchar', 'text', 'character varying' ) \
                  AND a.atttypmod > 4 \
                 THEN a.atttypmod - 4 \
@@ -42,6 +44,14 @@ INNER JOIN pg_catalog.pg_attribute a \
        AND a.attnum > 0 \
 INNER JOIN pg_catalog.pg_type t \
         ON t.oid = a.atttypid \
+ LEFT JOIN pg_catalog.pg_constraint co_p \
+        ON co_p.conrelid = c.oid \
+       AND co_p.contype = 'p' \
+       AND a.attnum = ALL( co_p.conkey ) \
+ LEFT JOIN pg_catalog.pg_constraint co_u \
+        ON co_u.conrelid = c.oid \
+       AND co_u.contype = 'u' \
+       AND a.attnum = ANY( co_u.conkey ) \
      WHERE c.relkind NOT IN( 'S', 'i', 't', 'c', 'I' ) \
        AND c.relname::VARCHAR = $2 \
   ORDER BY a.attnum ASC";

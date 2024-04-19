@@ -3,7 +3,7 @@
 
 #include "common_includes.h"
 
-#define TRIE_SIZE 96
+#define TRIE_SIZE 95
 
 typedef struct trie {
     void *        data;

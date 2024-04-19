@@ -117,12 +117,28 @@ bool enumerate_relations( PGconn * conn, relation_t ** relations, uint32_t * num
             }
 
             col->is_not_null = true;
+            col->is_primary  = true;
+            col->is_unique   = true;
 
             if( is_column_null( j, col_result, "required" ) )
                 col->is_not_null = false;
+
+            if( is_column_null( j, col_result, "primary" ) )
+                col->is_primary = false;
+            else
+            {
+                if( rel->primary != NULL )
+                    printf( "WARNING: Relation %s.%s has multiple primary keys\n", rel->schema_name, rel->table_name );
+                rel->primary = col;
+            }
+
+            if( is_column_null( j, col_result, "unique" ) )
+                col->is_unique = false;
         }
     }
 
     return true;
 }
 
+
+//PGResult * get_tuple_by_id()

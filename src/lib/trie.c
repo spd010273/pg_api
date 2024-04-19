@@ -5,7 +5,7 @@ static void _trie_free( trie_t * );
 static bool _trie_has_children( trie_t * );
 
 static const char _trie_search_chars[TRIE_SIZE] = "\
- !\"#$%&'()*+,-./0123456789:;<=\
+ !\"#$%&'()*+,-.0123456789:;<=\
 >?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\
 \\]^_`abcdefghijklmnopqrstuvwxy\
 z{|}~'";
