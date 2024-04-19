@@ -61,7 +61,7 @@ PGconn * db_connect( PGconn * conn, conninfo_t * conninfo )
 
     if( connection_string == NULL )
         return NULL;
-    
+
     conn = PQconnectdb( connection_string );
 
     while( !CONN_GOOD( conn ) && try_count < MAX_CONN_RETRIES )
@@ -160,7 +160,6 @@ PGresult * execute_query( PGconn * conn, char * query, char ** params, uint32_t 
                  )
           )
         {
-
             temp_last_sql_state = PQresultErrorField(
                 result,
                 PG_DIAG_SQLSTATE
@@ -241,4 +240,146 @@ bool is_column_null( int32_t row, PGresult * result, char * column_name )
     }
 
     return false;
+}
+
+char * do_get( relation_t * rel, route_arg_t ** args, uint32_t num_args, bool is_get, conninfo_t * conninfo )
+{
+    char **    params     = NULL;
+    char *     statement  = NULL;
+    char *     stmt       = NULL;
+    uint32_t   i          = 0;
+    size_t     size       = 0;
+    size_t     size_rem   = 0;
+    int32_t    rv         = 0;
+    PGconn *   conn       = NULL;
+    PGresult * result     = NULL;
+    char *     json_out   = NULL;
+    char *     row_out    = NULL;
+    bool       last_row   = false;
+
+    if( rel == NULL || args == NULL || num_args == 0 )
+        return NULL;
+
+    params = ( char ** ) malloc( sizeof( char * ) * num_args );
+
+    if( params == NULL )
+        return NULL;
+
+    // Use i to compute size of statement
+    size = 46 + strlen( rel->schema_name ) + strlen( rel->table_name );
+
+    for( i = 0; i < num_args; i++ )
+    {
+        if( i > 0 )
+            size += 5;
+
+        size += strlen( args[i]->column->column_name ) + 3;
+        // replace this crap with log computation of int digits->ascii slots
+        if( i <= 9   )                      { size += 2; }
+        else if( i >= 10 && i <= 99       ) { size += 3; }
+        else if( i >= 100 && i <= 999     ) { size += 4; }
+        else if( i >= 1000 && i <= 9999   ) { size += 5; }
+        else if( i >= 10000 && i <= 99999 ) { size += 6; }
+        else { return NULL; }
+        params[i] = args[i]->arg;
+    }
+
+    statement = ( char * ) calloc( size, sizeof( char ) );
+
+    if( statement == NULL )
+        return NULL;
+
+    rv = snprintf(
+        statement,
+        size,
+        "SELECT to_jsonb( x.* ) AS row FROM %s.%s x WHERE %s = $%d",
+        rel->schema_name,
+        rel->table_name,
+        args[0]->column->column_name,
+        1
+    );
+
+    if( rv >= size || rv < 0 )
+    {
+        free( statement );
+        return NULL;
+    }
+
+    stmt     = statement + rv;
+    size_rem = size - rv;
+
+    for( i = 1; i < num_args; i++ )
+    {
+        rv = snprintf(
+            stmt,
+            size_rem,
+            " AND %s = $%d",
+            args[i]->column->column_name,
+            i + 1
+        );
+
+        if( rv >= size_rem || rv < 0 )
+        {
+            free( statement );
+            return NULL;
+        }
+
+        stmt     += rv;
+        size_rem -= rv;
+    }
+
+    if( size_rem < 1 || size_rem > size )
+    {
+        free( statement );
+        return NULL;
+    }
+
+    conn   = db_connect( NULL, conninfo );
+    result = execute_query( conn, statement, params, num_args );
+
+    if( result == NULL )
+        return NULL;
+
+    if( is_get && PQntuples( result ) > 1 )
+    {
+        free( statement );
+        PQfinish( conn );
+        return NULL;
+    }
+
+    size     = snprintf( NULL, 0,"{\"count\":%d,\"data\":[", PQntuples( result ) ) + 3;
+    json_out = ( char * ) malloc( sizeof( char ) * size );
+
+    if( json_out == NULL )
+    {
+        free( statement );
+        PQfinish( conn );
+        return NULL;
+    }
+
+    snprintf( json_out, size, "{\"count\":%d,\"data\":[", PQntuples( result ) );
+
+    for( i = 0; i < PQntuples( result ); i++ )
+    {
+        if( i == PQntuples( result ) - 1 )
+            last_row = true;
+
+        row_out = get_column_value( i, result, "row" );
+        size   += strlen( row_out );
+
+        if( !last_row )
+            size++;
+
+        json_out = ( char * ) realloc( json_out, size );
+        strncat( json_out, row_out, size );
+
+        if( !last_row )
+            strncat( json_out, ",", size );
+    }
+
+    strncat( json_out, "]}", size );
+    free( statement );
+    PQfinish( conn );
+    json_out[size - 1] = '\0';
+    return json_out;
 }

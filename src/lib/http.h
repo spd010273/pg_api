@@ -7,6 +7,7 @@
 #include <sys/select.h>
 #include <microhttpd.h>
 #include "trie.h"
+#include "pg.h"
 
 #define LISTEN_PORT 8080
 typedef enum {
@@ -25,7 +26,7 @@ typedef struct {
     bool           slash;
 } url_t;
 
-extern bool start_server( void );
+extern bool start_server( conninfo_t * );
 extern bool stop_server( void );
 extern bool register_route( char *, method_t, void *);
 extern void * remove_route( char *, method_t );

@@ -14,7 +14,7 @@
 #define SQL_STATE_CONNECTION_DOES_NOT_EXIST "08003"
 #define SQL_STATE_CONNECTION_EXCEPTION "08000"
 
-
+extern char * do_get( relation_t *, route_arg_t **, uint32_t, bool, conninfo_t * );
 extern PGresult * execute_query( PGconn *, char *, char **, uint32_t );
 extern PGconn * db_connect( PGconn *, conninfo_t * );
 extern char * get_connection_string( conninfo_t * );

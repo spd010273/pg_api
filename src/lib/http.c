@@ -1,8 +1,8 @@
 #include "http.h"
 
-static const char * not_found = "<html><body>Not Found.</body></html>";
+static const char *        not_found     = "<html><body>Not Found.</body></html>";
 static struct MHD_Daemon * daemon_handle = NULL;
-static trie_t * head = NULL;
+static trie_t *            head          = NULL;
 
 static char * get_route_name( char *, method_t );
 static char * get_route_name_ext( const char *, const char * );
@@ -29,9 +29,9 @@ static bool _url_add_argument( url_t *, const char *, column_t * );
 // see https://www.gnu.org/software/libmicrohttpd/manual/html_node/microhttpd_002dcb.html
 enum MHD_Result parse_url_argument( void * cls, enum MHD_ValueKind param_kind, const char * key, const char * val )
 {
-    url_t * urldata = NULL;
-    uint32_t i = 0;
-    uint32_t j = 0;
+    url_t *  urldata = NULL;
+    uint32_t i       = 0;
+    uint32_t j       = 0;
 
     if( cls == NULL )
         return MHD_NO;
@@ -89,6 +89,7 @@ static url_t * parse_url( const char * method, const char * url, struct MHD_Conn
         url++;
 
     route = ( char * ) calloc( strnlen( url, MAX_RELNAME_LEN + MAX_PARAM_LEN ), sizeof( char ) );
+
     if( route == NULL )
     {
         _log( LOG_LEVEL_ERROR, "Failed to allocate memory" );
@@ -159,7 +160,7 @@ static url_t * parse_url( const char * method, const char * url, struct MHD_Conn
                 result->rel->schema_name,
                 result->rel->table_name
             );
-            return NULL; 
+            return NULL;
         }
     }
 
@@ -181,9 +182,14 @@ static enum MHD_Result router(
     enum MHD_Result       ret          = 0;
     url_t *               parsed_url   = NULL;
     relation_t *          resolved_rel = NULL;
-    const char * result = "<html><body>Hello, World!</body></html>";
-    uint32_t i = 0;
+    uint32_t              i            = 0;
+    char *                json_out     = NULL;
+    conninfo_t *          conninfo     = NULL;
 
+    if( cls == NULL )
+        goto r_404;
+
+    conninfo   = ( conninfo_t * ) cls;
     parsed_url = parse_url( method, url, connection );
 
     if( parsed_url == NULL )
@@ -218,7 +224,7 @@ static enum MHD_Result router(
         {
             if( parsed_url->arg[0]->column->is_primary )
             {
-                // Simple get
+                json_out = do_get( parsed_url->rel, parsed_url->arg, parsed_url->arglen, true, conninfo );
             }
             else
             {
@@ -236,7 +242,7 @@ static enum MHD_Result router(
         }
         else if( !parsed_url->slash && parsed_url->arglen > 0 )
         {
-            // Search
+            json_out = do_get( parsed_url->rel, parsed_url->arg, parsed_url->arglen, false, conninfo );
         }
         else
         {
@@ -264,13 +270,12 @@ static enum MHD_Result router(
 
 
     response = MHD_create_response_from_buffer(
-        strlen( result ),
-        ( void * ) result,
-        MHD_RESPMEM_PERSISTENT
+        strlen( json_out ),
+        ( void * ) json_out,
+        MHD_RESPMEM_MUST_FREE
     );
 
     _free_url( parsed_url );
-
     ret = MHD_queue_response( connection, MHD_HTTP_OK, response );
     MHD_destroy_response( response );
 
@@ -287,7 +292,7 @@ r_404:
     return ret;
 }
 
-bool start_server( void )
+bool start_server( conninfo_t * conninfo )
 {
     if( daemon_handle == NULL )
     {
@@ -297,7 +302,7 @@ bool start_server( void )
             NULL,
             NULL,
             &router,
-            NULL,
+            ( void * ) conninfo,
             MHD_OPTION_END
         );
 
